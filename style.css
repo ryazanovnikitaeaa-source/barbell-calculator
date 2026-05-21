@@ -151,12 +151,17 @@ body.grid-background {
 }
 
 /* Barbell visualization */
-.barbell-container {
+.barbell-container,
+#barbell-viz {
   display: flex;
   justify-content: center;
   align-items: center;
+  width: 100%;
+  max-width: 100%;
   min-height: 220px;
   padding: 1.5rem 0.5rem;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .barbell {
@@ -164,6 +169,7 @@ body.grid-background {
   align-items: center;
   justify-content: center;
   gap: 0;
+  flex-shrink: 0;
   transform: scale(1.35);
   transform-origin: center center;
 }
@@ -389,13 +395,27 @@ body:has(#bar-20.active) .bar-shaft {
   text-shadow: 0 0 8px rgba(249, 115, 22, 0.35);
 }
 
-@media (max-width: 480px) {
-  .barbell-container {
-    min-height: 180px;
+/* Мобильные: штанга целиком на экране, без горизонтального скролла */
+@media (max-width: 500px) {
+  .viz-panel {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    overflow: hidden;
+  }
+
+  .barbell-container,
+  #barbell-viz {
+    max-width: 100%;
+    width: 100%;
+    min-height: 150px;
+    padding: 0.75rem 0;
+    overflow-x: hidden;
+    overflow-y: visible;
   }
 
   .barbell {
-    transform: scale(1.1);
+    transform: scale(0.82);
+    transform-origin: center center;
   }
 
   .plate-45 { width: 22px; height: 88px; }
@@ -411,5 +431,22 @@ body:has(#bar-20.active) .bar-shaft {
   .collars {
     width: 4px;
     height: 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .barbell {
+    transform: scale(0.7);
+  }
+}
+
+@media (max-width: 360px) {
+  .barbell-container,
+  #barbell-viz {
+    min-height: 130px;
+  }
+
+  .barbell {
+    transform: scale(0.6);
   }
 }
