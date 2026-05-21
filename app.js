@@ -1,6 +1,6 @@
 const KG_TO_LBS = 2.20462;
-const PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
-const MIN_PLATE_LBS = 2.5;
+const ALL_PLATES_LBS = [45, 35, 25, 10, 5, 2.5];
+let activePlates = [...ALL_PLATES_LBS];
 const OVER_UNFAVORABLE_KG = 5;
 const OVER_HIDE_KG = 20;
 
@@ -38,6 +38,7 @@ function cacheElements() {
   els.plateListUnder = $('plate-list-under');
   els.plateListOver = $('plate-list-over');
   els.overWarning = $('over-warning');
+  els.platesInventory = $('plates-inventory');
 }
 
 function assertElements() {
@@ -57,6 +58,7 @@ function assertElements() {
     ['plate-list-under', els.plateListUnder],
     ['plate-list-over', els.plateListOver],
     ['over-warning', els.overWarning],
+    ['plates-inventory', els.platesInventory],
   ];
 
   const missing = required.filter(([, node]) => !node).map(([id]) => id);
@@ -75,10 +77,32 @@ function lbsToKg(lbs) {
   return lbs / KG_TO_LBS;
 }
 
+function loadSettings() {
+  const savedBar = localStorage.getItem('barbell_selected_bar');
+  if (savedBar) {
+    selectedBarKg = parseFloat(savedBar);
+  }
+
+  const savedPlates = localStorage.getItem('barbell_active_plates');
+  if (savedPlates) {
+    try {
+      activePlates = JSON.parse(savedPlates).map(Number);
+    } catch (e) {
+      activePlates = [...ALL_PLATES_LBS];
+    }
+  }
+}
+
+function saveSettings() {
+  localStorage.setItem('barbell_selected_bar', String(selectedBarKg));
+  localStorage.setItem('barbell_active_plates', JSON.stringify(activePlates));
+}
+
 function selectBar(kg) {
   selectedBarKg = kg;
   els.bar18.classList.toggle('active', kg === 18);
   els.bar20.classList.toggle('active', kg === 20);
+  saveSettings();
 }
 
 function getSelectedBarKg() {
@@ -91,7 +115,7 @@ function greedyPlates(perSideLbs) {
   const plates = [];
   let remainderLbs = perSideLbs;
 
-  for (const plateLbs of PLATES_LBS) {
+  for (const plateLbs of activePlates) {
     const count = Math.floor(remainderLbs / plateLbs + 1e-9);
     if (count > 0) {
       plates.push({ weight: plateLbs, count });
@@ -100,23 +124,6 @@ function greedyPlates(perSideLbs) {
   }
 
   return { plates, remainderLbs: Math.max(0, remainderLbs) };
-}
-
-function clonePlates(plates) {
-  return plates.map(({ weight, count }) => ({ weight, count }));
-}
-
-function addMinPlateStep(plates) {
-  const next = clonePlates(plates);
-  const existing = next.find((p) => p.weight === MIN_PLATE_LBS);
-
-  if (existing) {
-    existing.count += 1;
-  } else {
-    next.push({ weight: MIN_PLATE_LBS, count: 1 });
-  }
-
-  return next;
 }
 
 function platesPerSideLbs(plates) {
@@ -140,20 +147,27 @@ function buildVariant(barKg, plates, targetKg) {
   };
 }
 
-/**
- * Недобор: жадный подбор <= цели.
- * Перебор: недобор + 1×2.5 lbs на сторону (минимальный шаг вверх).
- */
 function calculateVariants(totalKg) {
   const barKg = getSelectedBarKg();
   selectedBarKg = barKg;
+
+  if (activePlates.length === 0) {
+    throw new Error('Выберите хотя бы один номинал блинов в инвентаре.');
+  }
 
   const perSideKg = (totalKg - barKg) / 2;
   const perSideLbs = kgToLbs(Math.max(0, perSideKg));
 
   const underGreedy = greedyPlates(perSideLbs);
   const underPlates = underGreedy.plates;
-  const overPlates = addMinPlateStep(underPlates);
+
+  // Оптимальный перебор: добавляем минимальный доступный блин к весу недобора и пересчитываем начисто
+  const underWeightLbs = platesPerSideLbs(underPlates);
+  const minPlateLbs = Math.min(...activePlates);
+  const overWeightLbs = underWeightLbs + minPlateLbs;
+  
+  const overGreedy = greedyPlates(overWeightLbs);
+  const overPlates = overGreedy.plates;
 
   const under = buildVariant(barKg, underPlates, totalKg);
   const over = buildVariant(barKg, overPlates, totalKg);
@@ -189,7 +203,7 @@ function formatOverTitle(variant) {
   if (short > 0.005) {
     return `Перебор: ${formatKg(variant.totalKg)} кг (ещё −${formatKg(short)} кг до цели)`;
   }
-  return `Перебор: ${formatKg(variant.totalKg)} кг (шаг +2.5 lbs на сторону)`;
+  return `Перебор: ${formatKg(variant.totalKg)} кг`;
 }
 
 function createPlateElement(weight) {
@@ -372,10 +386,35 @@ function handleCalculate() {
     return;
   }
 
-  const data = calculateVariants(totalKg);
+  try {
+    const data = calculateVariants(totalKg);
+    els.results.classList.remove('hidden');
+    renderResults(data);
+  } catch (err) {
+    showError(err.message);
+  }
+}
 
-  els.results.classList.remove('hidden');
-  renderResults(data);
+function initInventoryUI() {
+  const buttons = els.platesInventory.querySelectorAll('.inventory-plate-btn');
+  buttons.forEach((btn) => {
+    const lbs = parseFloat(btn.dataset.lbs);
+    const isActive = activePlates.includes(lbs);
+    btn.classList.toggle('active', isActive);
+
+    btn.addEventListener('click', () => {
+      if (activePlates.includes(lbs)) {
+        activePlates = activePlates.filter((p) => p !== lbs);
+        btn.classList.remove('active');
+      } else {
+        activePlates.push(lbs);
+        activePlates.sort((a, b) => b - a);
+        btn.classList.add('active');
+      }
+      saveSettings();
+      if (els.targetWeight.value.trim()) handleCalculate();
+    });
+  });
 }
 
 function bindEvents() {
@@ -399,7 +438,9 @@ function bindEvents() {
 function init() {
   cacheElements();
   if (!assertElements()) return;
-  selectBar(20);
+  loadSettings();
+  selectBar(selectedBarKg);
+  initInventoryUI();
   bindEvents();
 }
 

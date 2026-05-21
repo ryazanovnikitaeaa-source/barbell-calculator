@@ -54,7 +54,7 @@
             <button type="button" id="bar-18" class="bar-btn flex-1 py-3 px-4 rounded border-2 font-semibold transition-all" data-kg="18">
               18 <span class="text-cyan-400/70 text-sm">кг</span>
             </button>
-            <button type="button" id="bar-20" class="bar-btn flex-1 py-3 px-4 rounded border-2 font-semibold transition-all active" data-kg="20">
+            <button type="button" id="bar-20" class="bar-btn flex-1 py-3 px-4 rounded border-2 font-semibold transition-all" data-kg="20">
               20 <span class="text-cyan-400/70 text-sm">кг</span>
             </button>
           </div>
@@ -78,20 +78,32 @@
         </div>
       </div>
 
+      <div class="mt-6">
+        <label class="block text-cyan-400/90 text-sm font-mono tracking-widest uppercase mb-3">
+          Доступные блины (lbs)
+        </label>
+        <div id="plates-inventory" class="grid grid-cols-3 sm:grid-cols-6 gap-2">
+          <button type="button" class="bar-btn inventory-plate-btn py-2 px-3 rounded border-2 font-semibold text-center transition-all" data-lbs="45">45</button>
+          <button type="button" class="bar-btn inventory-plate-btn py-2 px-3 rounded border-2 font-semibold text-center transition-all" data-lbs="35">35</button>
+          <button type="button" class="bar-btn inventory-plate-btn py-2 px-3 rounded border-2 font-semibold text-center transition-all" data-lbs="25">25</button>
+          <button type="button" class="bar-btn inventory-plate-btn py-2 px-3 rounded border-2 font-semibold text-center transition-all" data-lbs="10">10</button>
+          <button type="button" class="bar-btn inventory-plate-btn py-2 px-3 rounded border-2 font-semibold text-center transition-all" data-lbs="5">5</button>
+          <button type="button" class="bar-btn inventory-plate-btn py-2 px-3 rounded border-2 font-semibold text-center transition-all" data-lbs="2.5">2.5</button>
+        </div>
+      </div>
+
       <button type="button" id="calculate-btn" class="cyber-btn w-full mt-6 py-4 rounded font-bold tracking-widest uppercase text-sm sm:text-base text-center">
         РАССЧИТАТЬ
       </button>
     </section>
 
     <section id="results" class="hidden results-section">
-      <!-- Вариант: Недобор -->
       <article id="variant-under" class="variant-card variant-card--under cyber-panel">
         <h2 id="under-title" class="variant-title variant-title--under"></h2>
         <div id="barbell-viz-under" class="barbell-container visual-container"></div>
         <ul id="plate-list-under" class="variant-plate-list"></ul>
       </article>
 
-      <!-- Вариант: Перебор -->
       <article id="variant-over" class="variant-card variant-card--over cyber-panel">
         <h2 id="over-title" class="variant-title variant-title--over"></h2>
         <div id="barbell-viz-over" class="barbell-container visual-container"></div>
