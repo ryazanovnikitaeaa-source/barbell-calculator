@@ -29,10 +29,15 @@ function cacheElements() {
   els.calculateBtn = $('calculate-btn');
   els.results = $('results');
   els.errorMsg = $('error-msg');
-  els.visualization = $('barbell-viz');
-  els.summaryLine = $('summary-line');
-  els.plateList = $('plate-list');
-  els.remainderInfo = $('remainder-info');
+  els.variantUnder = $('variant-under');
+  els.variantOver = $('variant-over');
+  els.underTitle = $('under-title');
+  els.overTitle = $('over-title');
+  els.vizUnder = $('barbell-viz-under');
+  els.vizOver = $('barbell-viz-over');
+  els.plateListUnder = $('plate-list-under');
+  els.plateListOver = $('plate-list-over');
+  els.overWarning = $('over-warning');
 }
 
 function assertElements() {
@@ -43,15 +48,20 @@ function assertElements() {
     ['calculate-btn', els.calculateBtn],
     ['results', els.results],
     ['error-msg', els.errorMsg],
-    ['barbell-viz', els.visualization],
-    ['summary-line', els.summaryLine],
-    ['plate-list', els.plateList],
-    ['remainder-info', els.remainderInfo],
+    ['variant-under', els.variantUnder],
+    ['variant-over', els.variantOver],
+    ['under-title', els.underTitle],
+    ['over-title', els.overTitle],
+    ['barbell-viz-under', els.vizUnder],
+    ['barbell-viz-over', els.vizOver],
+    ['plate-list-under', els.plateListUnder],
+    ['plate-list-over', els.plateListOver],
+    ['over-warning', els.overWarning],
   ];
 
   const missing = required.filter(([, node]) => !node).map(([id]) => id);
   if (missing.length) {
-    console.error('[Barbell Vibe] Не найдены элементы:', missing.join(', '));
+    console.error('[Barbell Calculator] Не найдены элементы:', missing.join(', '));
     return false;
   }
   return true;
@@ -89,17 +99,13 @@ function greedyPlates(perSideLbs) {
     }
   }
 
-  return {
-    plates,
-    remainderLbs: Math.max(0, remainderLbs),
-  };
+  return { plates, remainderLbs: Math.max(0, remainderLbs) };
 }
 
 function clonePlates(plates) {
   return plates.map(({ weight, count }) => ({ weight, count }));
 }
 
-/** Следующий шаг вверх: +1 блин 2.5 lbs на каждую сторону */
 function addMinPlateStep(plates) {
   const next = clonePlates(plates);
   const existing = next.find((p) => p.weight === MIN_PLATE_LBS);
@@ -118,49 +124,45 @@ function platesPerSideLbs(plates) {
 }
 
 function totalBarKg(barKg, plates) {
-  const perSideKg = lbsToKg(platesPerSideLbs(plates));
-  return barKg + 2 * perSideKg;
+  return barKg + 2 * lbsToKg(platesPerSideLbs(plates));
+}
+
+function buildVariant(barKg, plates, targetKg) {
+  const totalKg = totalBarKg(barKg, plates);
+  const diffUnder = Math.max(0, targetKg - totalKg);
+  const diffOver = Math.max(0, totalKg - targetKg);
+
+  return {
+    plates,
+    totalKg,
+    diffUnderKg: diffUnder,
+    diffOverKg: diffOver,
+  };
 }
 
 /**
- * 1) Чистый вес блинов на сторону в кг: (целевой − гриф) / 2
- * 2) Конвертация в lbs
- * 3) Жадный подбор (недобор) + шаг перебора (+2.5 lbs/сторону)
+ * Недобор: жадный подбор <= цели.
+ * Перебор: недобор + 1×2.5 lbs на сторону (минимальный шаг вверх).
  */
-function calculatePlatesPerSide(totalKg) {
+function calculateVariants(totalKg) {
   const barKg = getSelectedBarKg();
   selectedBarKg = barKg;
 
   const perSideKg = (totalKg - barKg) / 2;
   const perSideLbs = kgToLbs(Math.max(0, perSideKg));
 
-  const underResult = greedyPlates(perSideLbs);
-  const underPlates = underResult.plates;
+  const underGreedy = greedyPlates(perSideLbs);
+  const underPlates = underGreedy.plates;
   const overPlates = addMinPlateStep(underPlates);
 
-  const underTotalKg = totalBarKg(barKg, underPlates);
-  const overTotalKg = totalBarKg(barKg, overPlates);
-
-  const underDiffKg = Math.max(0, totalKg - underTotalKg);
-  const overDiffKg = Math.max(0, overTotalKg - totalKg);
+  const under = buildVariant(barKg, underPlates, totalKg);
+  const over = buildVariant(barKg, overPlates, totalKg);
 
   return {
-    plates: underPlates,
-    totalKg,
+    targetKg: totalKg,
     barKg,
-    perSideKg,
-    perSideLbs,
-    remainderLbs: underResult.remainderLbs,
-    under: {
-      totalKg: underTotalKg,
-      diffKg: underDiffKg,
-      perSideShortKg: lbsToKg(underResult.remainderLbs),
-    },
-    over: {
-      totalKg: overTotalKg,
-      diffKg: overDiffKg,
-      plates: overPlates,
-    },
+    under,
+    over,
   };
 }
 
@@ -172,16 +174,22 @@ function formatKg(value) {
   return value.toFixed(2);
 }
 
-function buildSummaryText(plates) {
-  if (!plates.length) {
-    return 'На каждую сторону: только гриф (без блинов).';
+function formatUnderTitle(variant, targetKg) {
+  if (variant.diffUnderKg <= 0.005) {
+    return `Недобор: ${formatKg(variant.totalKg)} кг (совпадает с целью)`;
   }
+  return `Недобор: ${formatKg(variant.totalKg)} кг (−${formatKg(variant.diffUnderKg)} кг)`;
+}
 
-  const parts = plates.map(
-    ({ weight, count }) => `${count} по ${formatPlateName(weight)} lbs`
-  );
-
-  return `На каждую сторону: ${parts.join(', ')}.`;
+function formatOverTitle(variant) {
+  if (variant.diffOverKg > 0.005) {
+    return `Перебор: ${formatKg(variant.totalKg)} кг (+${formatKg(variant.diffOverKg)} кг)`;
+  }
+  const short = variant.diffUnderKg;
+  if (short > 0.005) {
+    return `Перебор: ${formatKg(variant.totalKg)} кг (ещё −${formatKg(short)} кг до цели)`;
+  }
+  return `Перебор: ${formatKg(variant.totalKg)} кг (шаг +2.5 lbs на сторону)`;
 }
 
 function createPlateElement(weight) {
@@ -198,43 +206,7 @@ function createPlateElement(weight) {
   return plate;
 }
 
-function clearPlateHighlights() {
-  els.visualization.querySelectorAll('.plate.highlight').forEach((plate) => {
-    plate.classList.remove('highlight');
-  });
-  els.plateList.querySelectorAll('.plate-list-item.is-hovered').forEach((item) => {
-    item.classList.remove('is-hovered');
-  });
-}
-
-function highlightPlates(weight) {
-  const weightKey = String(weight);
-  clearPlateHighlights();
-
-  els.visualization.querySelectorAll('.plate').forEach((plate) => {
-    if (plate.dataset.plateWeight === weightKey) {
-      plate.classList.add('highlight');
-    }
-  });
-
-  els.plateList.querySelectorAll('.plate-list-item').forEach((item) => {
-    if (item.dataset.plateWeight === weightKey) {
-      item.classList.add('is-hovered');
-    }
-  });
-}
-
-function showVisualContainer() {
-  const viz = els.visualization;
-  viz.classList.remove('visible');
-  void viz.offsetWidth;
-  requestAnimationFrame(() => {
-    viz.classList.add('visible');
-  });
-}
-
-function renderBarbell(plates) {
-  const container = els.visualization;
+function renderBarbell(container, plates) {
   container.innerHTML = '';
 
   const barbell = document.createElement('div');
@@ -285,13 +257,31 @@ function renderBarbell(plates) {
   container.appendChild(barbell);
 }
 
-function renderPlateList(plates) {
-  els.plateList.innerHTML = '';
+function clearHighlights(vizEl, listEl) {
+  vizEl.querySelectorAll('.plate.highlight').forEach((p) => p.classList.remove('highlight'));
+  listEl.querySelectorAll('.plate-list-item.is-hovered').forEach((i) => i.classList.remove('is-hovered'));
+}
+
+function bindHighlight(vizEl, listEl, weight) {
+  const key = String(weight);
+  clearHighlights(vizEl, listEl);
+
+  vizEl.querySelectorAll('.plate').forEach((plate) => {
+    if (plate.dataset.plateWeight === key) plate.classList.add('highlight');
+  });
+
+  listEl.querySelectorAll('.plate-list-item').forEach((item) => {
+    if (item.dataset.plateWeight === key) item.classList.add('is-hovered');
+  });
+}
+
+function renderPlateList(listEl, vizEl, plates) {
+  listEl.innerHTML = '';
 
   if (!plates.length) {
     const li = document.createElement('li');
-    li.textContent = 'Блины не требуются.';
-    els.plateList.appendChild(li);
+    li.textContent = 'Блины не требуются (только гриф).';
+    listEl.appendChild(li);
     return;
   }
 
@@ -301,75 +291,59 @@ function renderPlateList(plates) {
     li.dataset.plateWeight = String(weight);
     li.textContent = `${formatPlateName(weight)} lbs × ${count} (на сторону)`;
 
-    li.addEventListener('mouseenter', () => highlightPlates(weight));
-    li.addEventListener('mouseleave', clearPlateHighlights);
+    li.addEventListener('mouseenter', () => bindHighlight(vizEl, listEl, weight));
+    li.addEventListener('mouseleave', () => clearHighlights(vizEl, listEl));
 
-    els.plateList.appendChild(li);
+    listEl.appendChild(li);
   });
 }
 
-function getUnderColorClass(diffKg) {
-  if (diffKg < 0.2) return 'remainder-low';
-  if (diffKg > 0.5) return 'remainder-high';
-  return 'remainder-mid';
+function animateVisual(vizEl) {
+  vizEl.classList.remove('visible');
+  void vizEl.offsetWidth;
+  requestAnimationFrame(() => vizEl.classList.add('visible'));
 }
 
-function renderRemainderInfo(result) {
-  const wrap = els.remainderInfo;
-  const { under, over, totalKg } = result;
+function renderResults(data) {
+  const { under, over, targetKg } = data;
 
-  wrap.innerHTML = '';
-  wrap.className = 'remainder-wrap';
+  els.underTitle.textContent = formatUnderTitle(under, targetKg);
 
-  const hasUnderGap = under.diffKg > 0.005;
-  const hideOver = over.diffKg > OVER_HIDE_KG;
+  renderBarbell(els.vizUnder, under.plates);
+  renderPlateList(els.plateListUnder, els.vizUnder, under.plates);
+  animateVisual(els.vizUnder);
 
-  const underEl = document.createElement('p');
-  underEl.className = 'remainder-block remainder-under';
+  els.variantUnder.classList.remove('hidden');
 
-  if (hasUnderGap) {
-    underEl.textContent = `Недобор: ${formatKg(under.totalKg)} кг (−${formatKg(under.diffKg)} кг)`;
-    underEl.classList.add(getUnderColorClass(under.diffKg));
-  } else {
-    underEl.textContent = `Недобор: ${formatKg(under.totalKg)} кг (совпадает с целью ${formatKg(totalKg)} кг)`;
-    underEl.classList.add('remainder-low');
-  }
-
-  wrap.appendChild(underEl);
+  const overDiff = over.diffOverKg;
+  const hideOver = overDiff > OVER_HIDE_KG;
 
   if (hideOver) {
-    wrap.classList.remove('hidden');
+    els.variantOver.classList.add('hidden');
     return;
   }
 
-  const overEl = document.createElement('p');
-  overEl.className = 'remainder-block remainder-over';
+  els.variantOver.classList.remove('hidden');
+  els.overTitle.textContent = formatOverTitle(over);
 
-  if (over.diffKg > 0.005) {
-    overEl.textContent = `Перебор: ${formatKg(over.totalKg)} кг (+${formatKg(over.diffKg)} кг)`;
-    if (over.diffKg > OVER_UNFAVORABLE_KG) {
-      overEl.classList.add('remainder-unfavorable');
-      overEl.textContent += ' · невыгодно';
-    }
+  const unfavorable = overDiff > OVER_UNFAVORABLE_KG;
+  els.variantOver.classList.toggle('variant-card--unfavorable', unfavorable);
+
+  if (unfavorable) {
+    els.overWarning.textContent = 'Невыгодный вариант: перебор больше 5 кг';
+    els.overWarning.classList.remove('hidden');
   } else {
-    const stillUnder = totalKg - over.totalKg;
-    if (stillUnder > 0.005) {
-      overEl.textContent = `Перебор: ${formatKg(over.totalKg)} кг (следующий шаг +2.5 lbs/сторону, ещё −${formatKg(stillUnder)} кг)`;
-    } else {
-      overEl.textContent = `Перебор: ${formatKg(over.totalKg)} кг (следующий шаг +2.5 lbs/сторону)`;
-    }
+    els.overWarning.textContent = '';
+    els.overWarning.classList.add('hidden');
   }
 
-  wrap.appendChild(overEl);
-  wrap.classList.remove('hidden');
+  renderBarbell(els.vizOver, over.plates);
+  renderPlateList(els.plateListOver, els.vizOver, over.plates);
+  animateVisual(els.vizOver);
 }
 
 function showError(message) {
   els.results.classList.add('hidden');
-  els.visualization.classList.remove('visible');
-  clearPlateHighlights();
-  els.remainderInfo.innerHTML = '';
-  els.remainderInfo.classList.add('hidden');
   els.errorMsg.textContent = message;
   els.errorMsg.classList.remove('hidden');
 }
@@ -393,15 +367,15 @@ function handleCalculate() {
     return;
   }
 
-  const result = calculatePlatesPerSide(totalKg);
+  if (totalKg <= getSelectedBarKg()) {
+    showError('Целевой вес должен быть больше веса грифа.');
+    return;
+  }
+
+  const data = calculateVariants(totalKg);
 
   els.results.classList.remove('hidden');
-  els.visualization.classList.remove('visible');
-  renderBarbell(result.plates);
-  els.summaryLine.textContent = buildSummaryText(result.plates);
-  renderPlateList(result.plates);
-  renderRemainderInfo(result);
-  showVisualContainer();
+  renderResults(data);
 }
 
 function bindEvents() {
@@ -417,18 +391,14 @@ function bindEvents() {
 
   els.calculateBtn.addEventListener('click', handleCalculate);
 
-  els.targetWeight.addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') handleCalculate();
+  els.targetWeight.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleCalculate();
   });
 }
 
 function init() {
   cacheElements();
-
-  if (!assertElements()) {
-    return;
-  }
-
+  if (!assertElements()) return;
   selectBar(20);
   bindEvents();
 }

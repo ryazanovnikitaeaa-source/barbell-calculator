@@ -122,62 +122,140 @@ body.grid-background {
 }
 
 .results-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
   margin-top: 0;
+  max-width: 100%;
 }
 
-.viz-panel {
-  padding: 1.75rem 1.5rem;
+.variant-card {
+  padding: 1.25rem 1.25rem 1.5rem;
+  border-radius: 0.5rem;
+  overflow-x: visible;
+  overflow-y: visible;
 }
 
-.layout-panel {
-  padding-top: 1.5rem;
-  padding-bottom: 1.5rem;
+.variant-card--under {
+  border-color: rgba(76, 175, 80, 0.45);
+  box-shadow:
+    0 0 24px rgba(76, 175, 80, 0.08),
+    inset 0 1px 0 rgba(76, 175, 80, 0.12);
 }
 
+.variant-card--over {
+  border-color: rgba(239, 68, 68, 0.45);
+  box-shadow:
+    0 0 24px rgba(239, 68, 68, 0.08),
+    inset 0 1px 0 rgba(239, 68, 68, 0.12);
+}
 
-.summary-line {
-  display: none;
+.variant-card--over.variant-card--unfavorable {
+  opacity: 0.45;
+  filter: saturate(0.65);
+}
+
+.variant-title {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 1rem;
+  line-height: 1.4;
+}
+
+.variant-title--under {
+  color: #4caf50;
+  text-shadow: 0 0 12px rgba(76, 175, 80, 0.35);
+}
+
+.variant-title--over {
+  color: #ef4444;
+  text-shadow: 0 0 12px rgba(239, 68, 68, 0.35);
+}
+
+.variant-plate-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  font-family: 'Share Tech Mono', monospace;
+  color: rgba(103, 232, 249, 0.9);
+}
+
+.variant-plate-list li {
+  padding: 0.35rem 0.5rem;
+  margin: 0 -0.5rem;
+  border-bottom: 1px solid rgba(0, 245, 255, 0.08);
+  border-radius: 4px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.variant-plate-list li::before {
+  content: '▸ ';
+  color: #ff00aa;
+}
+
+.variant-plate-list li:last-child {
+  border-bottom: none;
+}
+
+.variant-plate-list li.plate-list-item:hover,
+.variant-plate-list li.plate-list-item.is-hovered {
+  background-color: rgba(0, 245, 255, 0.08);
+  color: #e0f7fa;
+}
+
+.variant-warning {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  font-family: 'Share Tech Mono', monospace;
+  color: rgba(249, 115, 22, 0.85);
+  letter-spacing: 0.03em;
 }
 
 .visual-container {
-  transition: all 0.3s ease-in-out;
+  transition: opacity 0.3s ease-in-out;
   opacity: 0;
-  transform: translateY(10px);
 }
 
 .visual-container.visible {
   opacity: 1;
-  transform: translateY(0);
 }
 
 /* Barbell visualization */
 .barbell-container,
-#barbell-viz {
+#barbell-viz-under,
+#barbell-viz-over {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   max-width: 100%;
-  min-height: 220px;
-  padding: 1.5rem 0.5rem;
-  overflow: hidden;
+  min-height: 160px;
+  padding: 1.25rem 0.75rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
 }
 
 .barbell {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: center;
   gap: 0;
+  width: max-content;
   flex-shrink: 0;
-  transform: scale(1.35);
-  transform-origin: center center;
 }
 
 .barbell-side {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
+  justify-content: center;
   gap: 0;
+  flex-shrink: 0;
 }
 
 .barbell-side.left {
@@ -189,34 +267,42 @@ body.grid-background {
 }
 
 .bar-sleeve {
-  width: 36px;
-  height: 18px;
+  flex: 0 0 auto;
+  min-width: 20px;
+  width: clamp(18px, 4vw, 36px);
+  height: clamp(12px, 2.5vw, 18px);
   background: linear-gradient(180deg, #4b5563, #1f2937);
   border-radius: 2px;
 }
 
 .bar-shaft {
-  height: 14px;
+  flex: 0 1 168px;
+  min-width: 40px;
+  max-width: 168px;
+  height: clamp(10px, 2vw, 14px);
   background: linear-gradient(180deg, #6b7280, #374151);
   border-radius: 1px;
-  min-width: 120px;
-  flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-  transition: min-width 0.35s ease-in-out;
+  transition: flex-basis 0.35s ease, max-width 0.35s ease;
 }
 
-/* 18 кг — короче; 20 кг — соревновательный, ~1.4× длиннее */
 body:has(#bar-18.active) .bar-shaft {
-  min-width: 120px;
+  flex-basis: 120px;
+  max-width: 120px;
+  min-width: 36px;
 }
 
 body:has(#bar-20.active) .bar-shaft {
-  min-width: 168px;
+  flex-basis: 168px;
+  max-width: 168px;
+  min-width: 40px;
 }
 
 .bar-knurl {
-  flex: 1;
-  height: 16px;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+  min-height: clamp(10px, 2vw, 16px);
   background: repeating-linear-gradient(
     90deg,
     #52525b 0px,
@@ -234,12 +320,14 @@ body:has(#bar-20.active) .bar-shaft {
   border-radius: 3px;
   font-family: 'Share Tech Mono', monospace;
   font-weight: 700;
-  font-size: 10px;
+  font-size: clamp(7px, 1.8vw, 10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.15),
     0 2px 6px rgba(0, 0, 0, 0.5);
+  min-width: 8px;
   flex-shrink: 0;
+  flex-grow: 0;
   writing-mode: horizontal-tb;
   transition: filter 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -254,44 +342,51 @@ body:has(#bar-20.active) .bar-shaft {
 }
 
 .plate-45 {
-  width: 30px;
-  height: 120px;
+  flex-basis: 30px;
+  max-width: 30px;
+  height: clamp(56px, 22vh, 120px);
   background: linear-gradient(180deg, #3b82f6, #1d4ed8);
   color: #fff;
 }
 
 .plate-35 {
-  width: 26px;
-  height: 104px;
+  flex-basis: 26px;
+  max-width: 26px;
+  height: clamp(48px, 19vh, 104px);
   background: linear-gradient(180deg, #facc15, #ca8a04);
   color: #1a1a1a;
 }
 
 .plate-25 {
-  width: 24px;
-  height: 88px;
+  flex-basis: 24px;
+  max-width: 24px;
+  height: clamp(40px, 16vh, 88px);
   background: linear-gradient(180deg, #22c55e, #15803d);
   color: #fff;
 }
 
 .plate-10 {
-  width: 18px;
-  height: 64px;
+  flex-basis: 18px;
+  max-width: 18px;
+  height: clamp(32px, 12vh, 64px);
   background: linear-gradient(180deg, #f8fafc, #cbd5e1);
   color: #0f172a;
 }
 
 .plate-5 {
-  width: 16px;
-  height: 48px;
+  flex-basis: 16px;
+  max-width: 16px;
+  height: clamp(28px, 10vh, 48px);
   background: linear-gradient(180deg, #374151, #111827);
   color: #e5e7eb;
   border-color: rgba(255, 255, 255, 0.1);
 }
 
 .plate-2_5 {
-  width: 14px;
-  height: 38px;
+  flex-basis: 14px;
+  max-width: 14px;
+  min-width: 8px;
+  height: clamp(24px, 8vh, 38px);
   background: linear-gradient(180deg, #9ca3af, #4b5563);
   color: #fff;
 }
@@ -299,19 +394,20 @@ body:has(#bar-20.active) .bar-shaft {
 .plate-label {
   transform: rotate(-90deg);
   white-space: nowrap;
-  font-size: 11px;
+  font-size: clamp(7px, 1.6vw, 11px);
   letter-spacing: 0.02em;
+  pointer-events: none;
 }
 
-/* Зажимы: вертикально к горизонтальному грифу, вплотную к внешнему блину */
 .collars {
   align-self: center;
+  flex: 0 0 auto;
   flex-shrink: 0;
-  width: 5px;
-  height: 22px;
+  min-width: 4px;
+  width: clamp(4px, 1vw, 5px);
+  height: clamp(16px, 4vw, 22px);
   margin: 0;
   padding: 0;
-  transform: none;
   background: linear-gradient(180deg, #f87171 0%, #dc2626 45%, #991b1b 100%);
   border: 1px solid #7f1d1d;
   border-radius: 2px;
@@ -321,7 +417,6 @@ body:has(#bar-20.active) .bar-shaft {
   z-index: 3;
 }
 
-/* Вплотную к внешней грани последнего блина */
 .barbell-side.left .collars {
   margin-left: -1px;
 }
@@ -330,123 +425,135 @@ body:has(#bar-20.active) .bar-shaft {
   margin-right: -1px;
 }
 
-#plate-list li::before {
-  content: '▸ ';
-  color: #ff00aa;
-}
+/* Мобильные */
+@media (max-width: 600px) {
+  .variant-card {
+    padding: 1rem 0.5rem 1.25rem;
+  }
 
-#plate-list li {
-  padding: 0.35rem 0.5rem;
-  margin: 0 -0.5rem;
-  border-bottom: 1px solid rgba(0, 245, 255, 0.08);
-  border-radius: 4px;
-  cursor: default;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-#plate-list li.plate-list-item:hover,
-#plate-list li.plate-list-item.is-hovered {
-  background-color: rgba(0, 245, 255, 0.08);
-  color: #e0f7fa;
-}
-
-#plate-list li:last-child {
-  border-bottom: none;
-}
-
-.remainder-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.remainder-block {
-  font-size: 0.9rem;
-  line-height: 1.5;
-  font-weight: bold;
-  font-family: 'Share Tech Mono', monospace;
-  letter-spacing: 0.03em;
-  margin: 0;
-}
-
-.remainder-under {
-  color: #9ca3af;
-}
-
-.remainder-under.remainder-low {
-  color: #4caf50;
-}
-
-.remainder-under.remainder-mid {
-  color: #94a3b8;
-}
-
-.remainder-under.remainder-high {
-  color: #ffeb3b;
-}
-
-.remainder-over {
-  color: #a78bfa;
-}
-
-.remainder-over.remainder-unfavorable {
-  color: #f97316;
-  text-shadow: 0 0 8px rgba(249, 115, 22, 0.35);
-}
-
-/* Мобильные: штанга целиком на экране, без горизонтального скролла */
-@media (max-width: 500px) {
-  .viz-panel {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-    overflow: hidden;
+  .variant-title {
+    font-size: 0.85rem;
   }
 
   .barbell-container,
-  #barbell-viz {
-    max-width: 100%;
-    width: 100%;
-    min-height: 150px;
-    padding: 0.75rem 0;
-    overflow-x: hidden;
+  #barbell-viz-under,
+  #barbell-viz-over {
+    min-height: 132px;
+    padding: 0.75rem 0.5rem;
+    overflow-x: auto;
     overflow-y: visible;
   }
 
-  .barbell {
-    transform: scale(0.82);
-    transform-origin: center center;
+  .plate-45 {
+    flex-basis: 16px;
+    max-width: 16px;
+    min-width: 8px;
   }
 
-  .plate-45 { width: 22px; height: 88px; }
-  .plate-35 { width: 20px; height: 76px; }
-  .plate-25 { width: 18px; height: 64px; }
-  .plate-10 { width: 14px; height: 48px; }
-  .plate-5 { width: 12px; height: 36px; }
-  .plate-2_5 { width: 10px; height: 28px; }
-  .plate-label { font-size: 9px; }
-  body:has(#bar-18.active) .bar-shaft { min-width: 72px; }
-  body:has(#bar-20.active) .bar-shaft { min-width: 100px; }
+  .plate-35 {
+    flex-basis: 14px;
+    max-width: 14px;
+    min-width: 8px;
+  }
 
-  .collars {
-    width: 4px;
-    height: 18px;
+  .plate-25 {
+    flex-basis: 13px;
+    max-width: 13px;
+    min-width: 8px;
+  }
+
+  .plate-10 {
+    flex-basis: 11px;
+    max-width: 11px;
+    min-width: 8px;
+  }
+
+  .plate-5 {
+    flex-basis: 10px;
+    max-width: 10px;
+    min-width: 8px;
+  }
+
+  .plate-2_5 {
+    flex-basis: 9px;
+    max-width: 9px;
+    min-width: 8px;
+  }
+
+  body:has(#bar-18.active) .bar-shaft {
+    flex-basis: 48px;
+    max-width: 72px;
+    min-width: 28px;
+  }
+
+  body:has(#bar-20.active) .bar-shaft {
+    flex-basis: 56px;
+    max-width: 88px;
+    min-width: 32px;
   }
 }
 
-@media (max-width: 400px) {
-  .barbell {
-    transform: scale(0.7);
+@media (max-width: 380px) {
+  .plate {
+    min-width: 6px;
+  }
+
+  .plate-45 { flex-basis: 12px; max-width: 12px; }
+  .plate-35 { flex-basis: 11px; max-width: 11px; }
+  .plate-25 { flex-basis: 10px; max-width: 10px; }
+  .plate-10 { flex-basis: 9px; max-width: 9px; }
+  .plate-5 { flex-basis: 8px; max-width: 8px; }
+  .plate-2_5 { flex-basis: 8px; max-width: 8px; min-width: 6px; }
+
+  body:has(#bar-18.active) .bar-shaft {
+    flex-basis: 36px;
+    max-width: 52px;
+    min-width: 24px;
+  }
+
+  body:has(#bar-20.active) .bar-shaft {
+    flex-basis: 42px;
+    max-width: 64px;
+    min-width: 28px;
   }
 }
 
-@media (max-width: 360px) {
-  .barbell-container,
-  #barbell-viz {
-    min-height: 130px;
-  }
+.variant-card.hidden {
+  display: none;
+}
+/* Финальный фикс контейнеров штанги с автоцентрированием */
+.barbell-container,
+#barbell-viz-under,
+#barbell-viz-over {
+  display: flex !important;
+  justify-content: flex-start !important; /* Важно для корректного скролла */
+  align-items: center !important;
+  overflow-x: auto !important; /* Включаем прокрутку */
+  overflow-y: hidden !important;
+  transform: none !important;
+  padding: 15px 0 !important;
+  width: 100% !important;
+}
 
-  .barbell {
-    transform: scale(0.6);
-  }
+/* Центрируем саму штангу внутри контейнера, когда она целиком влезает в экран */
+.barbell-container .barbell,
+#barbell-viz-under .barbell,
+#barbell-viz-over .barbell {
+  margin: 0 auto !important; /* Магия flexbox: центрирует штангу, пока нет упора в края */
+  display: flex !important;
+  align-items: center !important;
+  flex-shrink: 0 !important;
+}
+
+/* Фикс центрального грифа */
+.barbell-bar, 
+.bar-center, 
+[class*="bar-"] {
+  min-width: 80px !important; /* Гриф больше не сожмется */
+  flex-shrink: 0 !important;
+}
+
+/* Фикс блинов */
+.plate {
+  flex-shrink: 0 !important;
 }

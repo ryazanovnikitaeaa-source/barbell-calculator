@@ -46,7 +46,6 @@
 
     <section class="cyber-panel rounded-lg p-6 sm:p-8 mb-8">
       <div class="grid gap-6 sm:grid-cols-2">
-        <!-- Bar selection -->
         <div>
           <label class="block text-cyan-400/90 text-sm font-mono tracking-widest uppercase mb-3">
             Гриф
@@ -61,7 +60,6 @@
           </div>
         </div>
 
-        <!-- Target weight -->
         <div>
           <label for="target-weight" class="block text-cyan-400/90 text-sm font-mono tracking-widest uppercase mb-3">
             Целевой вес (кг)
@@ -85,17 +83,21 @@
       </button>
     </section>
 
-    <!-- Results -->
     <section id="results" class="hidden results-section">
-      <div class="cyber-panel viz-panel rounded-lg p-6 sm:p-8 mb-5">
-        <div id="barbell-viz" class="barbell-container visual-container"></div>
-      </div>
+      <!-- Вариант: Недобор -->
+      <article id="variant-under" class="variant-card variant-card--under cyber-panel">
+        <h2 id="under-title" class="variant-title variant-title--under"></h2>
+        <div id="barbell-viz-under" class="barbell-container visual-container"></div>
+        <ul id="plate-list-under" class="variant-plate-list"></ul>
+      </article>
 
-      <div class="cyber-panel layout-panel rounded-lg p-6 sm:p-8">
-        <p id="summary-line" class="summary-line" aria-hidden="true"></p>
-        <ul id="plate-list" class="space-y-2 font-mono text-cyan-300/90"></ul>
-        <div id="remainder-info" class="remainder-wrap hidden" aria-live="polite"></div>
-      </div>
+      <!-- Вариант: Перебор -->
+      <article id="variant-over" class="variant-card variant-card--over cyber-panel">
+        <h2 id="over-title" class="variant-title variant-title--over"></h2>
+        <div id="barbell-viz-over" class="barbell-container visual-container"></div>
+        <ul id="plate-list-over" class="variant-plate-list"></ul>
+        <p id="over-warning" class="variant-warning hidden"></p>
+      </article>
     </section>
 
     <p id="error-msg" class="hidden text-center text-red-400 font-mono py-4 border border-red-500/50 rounded bg-red-950/30"></p>
